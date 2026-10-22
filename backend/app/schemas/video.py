@@ -138,6 +138,9 @@ class Media(_Model):
     kind: MediaKind
     key: StorageKey
     attribution: str | None = None
+    # Length of the source clip, recorded at ingest. The renderer uses it to loop
+    # a clip that is shorter than its scene.
+    duration_s: float | None = Field(None, gt=0)
     # Trim applies to video clips only; a still image has no length of its own.
     trim_start_s: float = Field(0, ge=0)
     trim_end_s: float | None = Field(None, gt=0)

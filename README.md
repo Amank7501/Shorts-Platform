@@ -73,6 +73,7 @@ Open http://localhost:5173. The frontend proxies `/api` and `/files` to the back
 ```
 backend/    FastAPI app
 frontend/   React app
+renderer/   Remotion scene composition and segment renderer (Node)
 storage/    local files and the SQLite database (git-ignored)
 docs/       build spec
 ```

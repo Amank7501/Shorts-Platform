@@ -10,3 +10,7 @@ storage/*
 .claude/
 CLAUDE.md
 CLAUDE.local.md
+
+# Renderer build output
+renderer/.bundle/
+renderer/.binaries/

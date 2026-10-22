@@ -11,6 +11,11 @@ class Settings(BaseSettings):
     storage_dir: Path = ROOT / "storage"
     database_path: Path = ROOT / "storage" / "app.db"
 
+    renderer_dir: Path = ROOT / "renderer"
+    node_bin: str = "node"
+    ffmpeg_bin: str = "ffmpeg"
+    ffprobe_bin: str = "ffprobe"
+
     tts_provider: str = "openai"
     openai_api_key: str = ""
     elevenlabs_api_key: str = ""

@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shorts Platform: Build Spec</title>
+<style>
+:root{--bg:#f5f7f8;--surface:#fff;--ink:#16202b;--muted:#5a6773;--line:#d5dce1;--accent:#0b6e8a;--accent-soft:#dff0f5;--pause:#b4531a;--pause-soft:#fbe8da;--code:#eaeff2}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10171d;--surface:#18222b;--ink:#e6edf2;--muted:#9aa9b5;--line:#2c3945;--accent:#5cc3de;--accent-soft:#16333c;--pause:#f0a06a;--pause-soft:#3a2819;--code:#202c36}}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:860px;margin:0 auto;padding:40px 20px 80px}
+h1,h2,h3{font-family:Georgia,"Iowan Old Style","Times New Roman",serif;line-height:1.2;margin:0}
+h1{font-size:2.2rem;margin-bottom:10px}
+h2{font-size:1.5rem;margin:52px 0 14px;padding-top:20px;border-top:1px solid var(--line)}
+h3{font-size:1.1rem;margin:24px 0 8px}
+p{margin:0 0 12px;max-width:70ch}
+.lead{font-size:1.1rem;color:var(--muted);max-width:62ch}
+ul{margin:0 0 12px;padding-left:22px}li{margin:4px 0}
+code{background:var(--code);padding:1px 6px;border-radius:4px;font:0.88em ui-monospace,Menlo,Consolas,monospace}
+nav{display:flex;flex-wrap:wrap;gap:6px 16px;margin:20px 0 0;font-size:.92rem}
+nav a{color:var(--accent);text-decoration:none}nav a:hover{text-decoration:underline}
+a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.strip{display:flex;gap:0;margin:22px 0 8px;overflow-x:auto;padding-bottom:6px;border-top:10px dashed var(--line);border-bottom:10px dashed var(--line);background:var(--surface)}
+.frame{flex:1 0 118px;padding:14px 10px;border-right:2px solid var(--line);text-align:center;font-size:.88rem}
+.frame:last-child{border-right:0}
+.frame b{display:block;font-size:.95rem;margin-bottom:2px}
+.frame span{color:var(--muted);font-size:.8rem}
+.frame.pause{background:var(--pause-soft);box-shadow:inset 0 0 0 2px var(--pause)}
+.frame.pause b{color:var(--pause)}
+.note{background:var(--accent-soft);border-left:4px solid var(--accent);padding:12px 16px;border-radius:0 6px 6px 0;margin:16px 0}
+.note.warn{background:var(--pause-soft);border-left-color:var(--pause)}
+.table-wrap{overflow-x:auto;margin:12px 0 16px}
+table{border-collapse:collapse;width:100%;min-width:520px;font-size:.93rem;background:var(--surface)}
+th,td{text-align:left;padding:8px 12px;border:1px solid var(--line);vertical-align:top}
+th{background:var(--code);font-weight:600}
+pre{background:var(--code);padding:14px 16px;border-radius:6px;overflow-x:auto;font:.86rem/1.5 ui-monospace,Menlo,Consolas,monospace;margin:10px 0 16px}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:640px){.cols{grid-template-columns:1fr}h1{font-size:1.8rem}}
+.box{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:14px 18px}
+.box h3{margin-top:0}
+ol.steps{padding-left:22px}ol.steps li{margin:8px 0}
+.phase{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:14px 20px;margin:14px 0}.phase h3{margin-top:0}.phase p{margin-bottom:6px}.manual{border-left:4px solid var(--pause);background:var(--pause-soft);padding:8px 14px;border-radius:0 6px 6px 0;margin:10px 0}.manual ul,.phase ul{margin-bottom:4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Shorts Platform: Build Spec</h1>
+<p class="lead">A personal tool that turns a prepared script into a finished faceless YouTube Short. This page is the single source of truth for what we are building and how.</p>
+<nav>
+<a href="#idea">Idea</a><a href="#pipeline">Pipeline</a><a href="#media">Media</a><a href="#render">Render</a><a href="#screens">Screens</a><a href="#stack">Stack</a><a href="#json">Video JSON</a><a href="#storage">Storage</a><a href="#api">API</a><a href="#frontend">Frontend</a><a href="#local">Local setup</a><a href="#cost">Cost</a><a href="#order">Build order</a><a href="#risks">Risks</a><a href="#scope">Scope</a><a href="#phases">Build phases</a>
+</nav>
+
+<h2 id="idea">The idea</h2>
+<p>The manual workflow uses several AI tools one after another to make a faceless Short. We automate everything after the script is ready, and put an in-app editor where the user can review and fix the video before it renders.</p>
+<div class="cols">
+<div class="box"><h3>You do manually (for now)</h3><ul><li>Research and topic choice</li><li>Splitting the transcript into scenes (about 5 seconds of speech each), with a visual prompt per scene</li><li>Uploading the final MP4 to YouTube</li></ul></div>
+<div class="box"><h3>The platform does</h3><ul><li>Per-scene voiceover and word timing, an image or clip for each scene, assembly</li><li>A pause for review and editing in the browser</li><li>Final 9:16 render and MP4 download</li></ul></div>
+</div>
+<div class="note"><b>Audience:</b> personal use only, not a product for others. That is why auth, billing, and heavy infrastructure are out of scope.</div>
+
+<h2 id="pipeline">Pipeline</h2>
+<p>One LangGraph graph, one node per step. State is saved in a SQLite checkpointer, so the graph can pause at review for as long as needed and resume when the user approves.</p>
+<div class="strip" role="list">
+<div class="frame" role="listitem"><b>Voiceover</b><span>TTS, per scene</span></div>
+<div class="frame" role="listitem"><b>Timing</b><span>Whisper, per scene</span></div>
+<div class="frame" role="listitem"><b>Media</b><span>stock first, then generated</span></div>
+<div class="frame" role="listitem"><b>Assemble</b><span>build video JSON</span></div>
+<div class="frame pause" role="listitem"><b>Review</b><span>graph pauses (interrupt)</span></div>
+<div class="frame" role="listitem"><b>Render</b><span>per-scene segments, local</span></div>
+<div class="frame" role="listitem"><b>Done</b><span>download MP4</span></div>
+</div>
+<p>Input to the graph is the scenes JSON: one script line per scene, plus a visual prompt for each. Voiceover, timing, and media nodes work per scene, and scenes run in parallel.</p>
+<h3>What each node does</h3>
+<div class="table-wrap"><table>
+<tr><th>Node</th><th>Work</th></tr>
+<tr><td>Voiceover</td><td>One TTS call per scene (ElevenLabs, OpenAI TTS, or Google TTS), saved as one audio file per scene. Its length sets that scene’s duration.</td></tr>
+<tr><td>Timing</td><td>Run Whisper on each scene’s audio for word-level timestamps, used for captions.</td></tr>
+<tr><td>Media</td><td>Find an image or clip for each scene: stock first, image generation as fallback. See Scene media below.</td></tr>
+<tr><td>Assemble</td><td>Write everything into the video JSON: scenes, chosen media, per-scene audio, captions, timings.</td></tr>
+<tr><td>Review</td><td>Interrupt. The user edits in the browser. Approve resumes the graph.</td></tr>
+<tr><td>Render</td><td>Render each scene as its own segment, join the segments into one 9:16 MP4 on the local machine. See Render design below.</td></tr>
+</table></div>
+<p><b>State held by the graph:</b> project ID, scenes, per-scene audio keys and timestamps, media candidates, video JSON, status.</p>
+
+<h2 id="media">Scene media</h2>
+<p>Each scene gets one image or video clip. The system pre-selects the best candidate and the user can swap it. Order of sources: stock first, generation as fallback, and the user can always upload their own.</p>
+<h3>How media is chosen</h3>
+<ul>
+<li><b>Stock search:</b> use the scene’s visual prompt on Pexels and Pixabay. Keep only vertical media above a minimum resolution, rank by embedding similarity (CLIP) between the scene text and the media, and keep up to 3 candidates.</li>
+<li><b>Generation fallback:</b> used when no stock candidate matches well enough, or when the user switches the scene to generated. Add a project-level style prefix to every prompt so the video looks like one set. Generate vertically and larger than the frame, to leave room for pan and zoom. Make 1 or 2 images up front and more only through Regenerate.</li>
+<li><b>Upload:</b> the user can replace any scene’s media with their own file.</li>
+<li><b>Across the video:</b> never reuse the same media, and prefer variety between neighboring scenes.</li>
+<li><b>Caption-safe area:</b> captions and the Shorts interface cover the bottom and right edges, so keep the subject in the upper-middle area or set the focal point to push it there.</li>
+</ul>
+<p>Automatic quality scoring with a vision model is left for later, only if the user keeps making the same picks by hand.</p>
+<h3>Turning an image into video</h3>
+<p>Still images get a slow zoom or pan (Ken Burns). It is a transform over time, so no AI is involved and it is cheap to render. In Remotion it is a CSS transform driven by the frame number.</p>
+<ul>
+<li>Presets: zoom in, zoom out, pan left, pan right, pan up, pan down, chosen in a rotation so neighboring scenes never repeat the same move.</li>
+<li>Duration comes from the scene’s voiceover, so any image fits any scene length.</li>
+<li>The user can set a focal point so the zoom aims at the key object.</li>
+<li>Stock video clips are also allowed. They are trimmed or looped to the scene length.</li>
+</ul>
+
+<h2 id="render">Render design</h2>
+<ol class="steps">
+<li><b>Audio is the master clock.</b> A scene’s duration is its voiceover length plus a short pad. It is not fixed at 5 seconds. Media is trimmed or looped to fit the audio, and a still image has no length of its own, so drift is prevented by design.</li>
+<li><b>Normalize at ingest.</b> When a clip is downloaded, transcode it once with FFmpeg to 1080x1920, 30 fps, H.264, no audio, with its length capped. Also make a small low-resolution proxy for smooth scrubbing in the editor.</li>
+<li><b>Render per scene, with a cache.</b> Each scene renders as its own segment (media, motion, captions, and its own audio), keyed by a hash of that scene’s JSON. Editing a scene re-renders only that segment. Segments are then joined with FFmpeg. This means hard cuts only, and captions never span two scenes.</li>
+<li><b>Validate before rendering.</b> Check the video JSON against its schema (files exist, trims in range, durations add up). Support rendering a short range for spot checks, and log FFmpeg stderr.</li>
+<li><b>Draft and final modes.</b> Draft is half scale with a faster encoder preset, for quick checks. Final quality runs after approval.</li>
+</ol>
+<p>The editor preview uses the Remotion Player and needs no render, so render time is paid once per export, plus changed scenes.</p>
+<div class="note warn"><b>Open decision:</b> Remotion or FFmpeg alone for rendering segments. We start with Remotion because preview and output come from the same component. Time a test render with dummy clips (build step 2) and switch to FFmpeg if it is too slow.</div>
+
+<h2 id="screens">What the user sees</h2>
+<ol class="steps">
+<li><b>Input:</b> paste the scenes (one script line each, with a visual prompt), then click Generate.</li>
+<li><b>Progress:</b> a live step tracker (voiceover done, timing done, footage 5/12, and so on). A failed step shows a retry button.</li>
+<li><b>Editor:</b> the graph is paused here. The user previews the video and fixes what is wrong, then clicks Approve.</li>
+<li><b>Export:</b> render progress, then a download button for the MP4.</li>
+</ol>
+<h3>Editor capabilities (kept minimal)</h3>
+<p>Layout: the preview player on top, a thumbnail strip of all scenes below with a status mark on each (ok, needs attention, failed), and a side panel for the selected scene. An Approve All button covers the case where the defaults look fine.</p><ul><li>Script line and its voiceover: edit and regenerate. Only that scene’s audio, timing, and segment are redone, so later scenes are not affected</li><li>Media candidates: click to swap, Regenerate with an editable prompt, or upload</li><li>Source switch: stock, generated, or uploaded</li><li>Motion preset and a focal-point picker</li><li>Caption text and style</li><li>Trim the media or change its start point</li><li>Reorder scenes</li></ul>
+<p>A full timeline editor is a separate project and is not planned. Extra features are added only when the same fix keeps being done by hand.</p>
+
+<h2 id="stack">Stack</h2>
+<div class="table-wrap"><table>
+<tr><th>Layer</th><th>Choice</th></tr>
+<tr><td>Frontend</td><td>React + TypeScript + Zustand, Remotion Player for preview</td></tr>
+<tr><td>Backend</td><td>One app: FastAPI (or Node)</td></tr>
+<tr><td>Orchestration</td><td>LangGraph with a SQLite checkpointer (<code>SqliteSaver</code>)</td></tr>
+<tr><td>Jobs</td><td>Background thread or simple in-process queue</td></tr>
+<tr><td>Data</td><td>SQLite for projects and the video JSON, local <code>storage/</code> folder for files</td></tr>
+<tr><td>Speech and timing</td><td>TTS API (one call per scene), <code>faster-whisper</code> (or <code>whisper.cpp</code>) locally</td></tr>
+<tr><td>Media</td><td>Pexels/Pixabay first, one image generation API as fallback</td></tr>
+<tr><td>Render</td><td>Per-scene segments joined with FFmpeg. Remotion for preview and (to start) segment rendering</td></tr>
+<tr><td>Config</td><td>API keys in a <code>.env</code> file</td></tr>
+<tr><td>Run</td><td>Two commands: backend and frontend</td></tr>
+</table></div>
+
+<h2 id="json">The video JSON</h2>
+<p>This is the contract for the whole system. Pipeline nodes write it, the editor edits it, and Remotion reads it for both preview and final render. The same component renders both, so the preview matches the output. It must be defined before anything else.</p>
+<p>It holds, for each scene: the script line, its own audio file and duration, the chosen media and its source (stock, generated, or uploaded), the motion preset and focal point, and captions with word timings and style. It also holds the 9:16 output settings. Files are referenced by storage key, never by absolute path.</p>
+
+<h2 id="storage">Storage</h2>
+<p>All files live on the local disk. Keep a clean path to S3 later by following these rules from day one:</p>
+<ul>
+<li>One small storage interface: <code>save(file) → key</code>, <code>get(key) → path or URL</code>, <code>delete(key)</code>. No other code touches file paths.</li>
+<li>Store keys (for example <code>projects/42/clips/scene_03.mp4</code>) in the video JSON, not absolute paths.</li>
+<li>Folder layout: <code>storage/projects/{id}/{audio|clips|renders}/</code>.</li>
+<li>The backend serves files over HTTP (<code>GET /files/{key}</code>), because the Remotion Player needs URLs.</li>
+<li>Delete unchosen candidate clips once a project is approved.</li>
+</ul>
+
+<h2 id="api">Backend API</h2>
+<p>Paths sit under <code>/api</code>. Long jobs return immediately and run in the background. The frontend polls <code>status</code> every 2 to 3 seconds while a job runs.</p>
+<h3>Core loop (build first)</h3>
+<div class="table-wrap"><table>
+<tr><th>Endpoint</th><th>Purpose</th></tr>
+<tr><td><code>POST /projects</code>, <code>GET /projects</code>, <code>GET /projects/{id}</code></td><td>Create, list, and read projects</td></tr>
+<tr><td><code>PUT /projects/{id}/scenes</code></td><td>Save the scenes JSON (script line and visual prompt per scene)</td></tr>
+<tr><td><code>POST /projects/{id}/run</code></td><td>Start the pipeline</td></tr>
+<tr><td><code>GET /projects/{id}/status</code></td><td>Current node, progress, errors</td></tr>
+<tr><td><code>GET /projects/{id}/video</code>, <code>PUT /projects/{id}/video</code></td><td>Read and save the video JSON (editor data)</td></tr>
+<tr><td><code>POST /projects/{id}/approve</code></td><td>Save the final edit, resume the graph past the interrupt, start the render</td></tr>
+<tr><td><code>GET /projects/{id}/render</code></td><td>Render status and output file</td></tr>
+<tr><td><code>GET /files/{key}</code></td><td>Serve audio, clips, and renders to the browser, and the MP4 download</td></tr>
+</table></div>
+<h3>Editor actions (add after the core loop works)</h3>
+<div class="table-wrap"><table>
+<tr><th>Endpoint</th><th>Purpose</th></tr>
+<tr><td><code>GET /projects/{id}/scenes/{n}/candidates</code></td><td>The suggested images or clips for a scene</td></tr>
+<tr><td><code>POST /projects/{id}/scenes/{n}/candidates/regenerate</code></td><td>Find new stock matches or generate new images for a scene</td></tr>
+<tr><td><code>POST /projects/{id}/scenes/{n}/voice/regenerate</code></td><td>Redo one scene’s voiceover and timing; only that scene re-renders</td></tr>
+<tr><td><code>POST /projects/{id}/steps/{step}/retry</code></td><td>Rerun one failed step</td></tr>
+</table></div>
+<div class="note"><b>Key endpoint:</b> <code>approve</code> must save the video JSON and resume the LangGraph interrupt in one step.</div>
+
+<h2 id="frontend">Frontend</h2>
+<ul>
+<li><b>Pages:</b> Projects list, New project (input), Progress, Editor, Export.</li>
+<li><b>Editor layout:</b> player on top or left, a scene strip below, and a side panel for the selected scene (clip candidates, caption text, voice line).</li>
+<li><b>State:</b> the video JSON lives in a Zustand store. Edits update the store and the preview instantly. Changes save to the backend with debounced autosave.</li>
+<li><b>Progress:</b> polling, with no SSE or WebSocket.</li>
+</ul>
+
+<h2 id="local">What runs locally</h2>
+<ul>
+<li><b>Whisper:</b> light for this use. A 30-second clip with the <code>small</code> model takes roughly 5 to 15 seconds on a normal laptop CPU and about 2 GB RAM. It transcribes clean TTS audio accurately. A GPU is not required.</li>
+<li><b>Render:</b> the heaviest local step. It uses CPU for around a minute or two per video.</li>
+<li><b>Backend, frontend, storage:</b> light.</li>
+<li><b>Everything else</b> (TTS, footage search or generation) is an API call and uses no local resources.</li>
+</ul>
+
+<h2 id="cost">Cost per video</h2>
+<p>Rough ranges. Check current provider pricing before committing.</p>
+<div class="table-wrap"><table>
+<tr><th>Item</th><th>Rough cost per 30-second video</th></tr>
+<tr><td>Voiceover (TTS)</td><td>A few cents to about $0.50, depending on provider and plan</td></tr>
+<tr><td>Whisper (local)</td><td>Free</td></tr>
+<tr><td>Stock images and clips</td><td>Free</td></tr>
+<tr><td>Generated images (fallback)</td><td>Priced per image, so it grows with the number of scenes where stock has no good match</td></tr>
+<tr><td>Render and storage (local)</td><td>Free (time and CPU only)</td></tr>
+</table></div>
+<p><b>Estimate:</b> about $0.10 to $1 per video with stock media and TTS. Each generated image adds to that. To stay cheap: stock first, generate only when needed, Whisper and render local.</p>
+
+<h2 id="order">Build order</h2>
+<ol class="steps">
+<li>Video JSON schema, storage interface, and database (including music and caption style fields).</li>
+<li>Remotion composition and per-scene render with FFmpeg join, tested with dummy clips and timed to settle the Remotion versus FFmpeg decision. Render is the hardest part, so it is proven first.</li>
+<li>Per-scene voiceover and word-timed captions.</li>
+<li>Media: stock search with CLIP ranking, plus generation fallback.</li>
+<li>Thin end-to-end script (scenes JSON in, MP4 out) with a dry-run mode, before any graph or UI.</li>
+<li>LangGraph pipeline and backend API, with the review interrupt.</li>
+<li>Frontend shell: projects, input, progress, preview, export.</li>
+<li>Editor: core fixes first, then the extras (focal point, motion, trim, reorder).</li>
+<li>Hardening, then the first real Short.</li>
+<li>Later: automate the research and transcript-split steps.</li>
+</ol>
+
+<h2 id="risks">Risks to plan for</h2>
+<ul>
+<li><b>Render is the hardest step.</b> Drift is prevented by using audio as the master clock, but inputs differ in resolution, frame rate, and codec, so every clip must be normalized at ingest. FFmpeg errors are cryptic and only show after a slow render, so validate the JSON first.</li>
+<li><b>Stock matching is unreliable for specific topics.</b> Generic results often miss exact facts. Mitigation: similarity ranking with up to 3 candidates, a generation fallback, and a quick human pick in the editor.</li>
+<li><b>Generated-image cost</b> grows with every fallback or regenerate, so generate only when stock fails or the user asks.</li>
+</ul>
+
+<h2 id="scope">Out of scope for now</h2>
+<ul>
+<li>Auth, user accounts, billing, and quotas</li>
+<li>Postgres, Redis, and S3 (SQLite and local disk instead)</li>
+<li>SSE and WebSocket (polling instead)</li>
+<li>Docker and deployment</li>
+<li>YouTube API upload (upload is manual)</li>
+<li>Automated research and transcript splitting (manual for now)</li>
+</ul>
+<div class="note"><b>If this ever becomes a product:</b> add auth, Postgres, a proper job queue, and S3. A clean video JSON and the storage interface make that upgrade much easier.</div>
+
+<h2 id="phases">Build phases (0 to 100)</h2>
+<p>The build is done with Claude Code, one phase at a time. Phases are vertical slices: each ends with something you can run. The percentage is overall progress once that phase is done. Phase 0 is preparation, so it stays at 0%. Manual steps are the things only you can do (accounts, keys, installs, listening and choosing).</p>
+<div class="strip" role="list">
+<div class="frame" role="listitem"><b>0%</b><span>0 Setup</span></div>
+<div class="frame" role="listitem"><b>8%</b><span>1 Contract</span></div>
+<div class="frame" role="listitem"><b>22%</b><span>2 Render proof</span></div>
+<div class="frame" role="listitem"><b>32%</b><span>3 Voice + captions</span></div>
+<div class="frame" role="listitem"><b>45%</b><span>4 Media</span></div>
+<div class="frame" role="listitem"><b>55%</b><span>5 End-to-end slice</span></div>
+<div class="frame" role="listitem"><b>68%</b><span>6 Graph + API</span></div>
+<div class="frame" role="listitem"><b>78%</b><span>7 Frontend shell</span></div>
+<div class="frame" role="listitem"><b>87%</b><span>8 Editor core</span></div>
+<div class="frame" role="listitem"><b>92%</b><span>9 Editor extras</span></div>
+<div class="frame" role="listitem"><b>97%</b><span>10 Hardening</span></div>
+<div class="frame" role="listitem"><b>100%</b><span>11 First Short</span></div>
+</div>
+
+<h3>Working with Claude Code</h3>
+<ul>
+<li>Put this spec in the repo (for example <code>docs/spec.html</code>) and add a short <code>CLAUDE.md</code> that points to it and lists the run commands. Every session then starts from the same source of truth.</li>
+<li>One phase per session. Ask Claude Code to plan first, then build, then run the phase’s “done when” check.</li>
+<li>Commit at the end of every phase so you can roll back.</li>
+<li>If a decision changes, update this spec first, then continue building.</li>
+</ul>
+
+<div class="phase">
+<h3>Phase 0 (0%): Setup and scaffold</h3>
+<div class="manual"><b>Manual setup</b>
+<ul>
+<li>Install recent versions of Node.js, Python, and FFmpeg (check that <code>ffmpeg</code> and <code>ffprobe</code> run in a terminal).</li>
+<li>Create accounts and API keys for: a TTS provider (ElevenLabs, OpenAI TTS, or Google TTS), Pexels, Pixabay, and one image generation API.</li>
+<li>Create the git repo, add the spec, and write the keys into a local <code>.env</code> file (never commit it).</li>
+</ul></div>
+<p><b>Claude Code:</b> create the project layout (<code>backend/</code>, <code>frontend/</code>, <code>storage/</code>), config loading from <code>.env</code>, SQLite setup, and <code>CLAUDE.md</code>.</p>
+<p><b>Done when:</b> backend and frontend both start with one command each and an empty page loads.</p>
+</div>
+
+<div class="phase">
+<h3>Phase 1 (8%): Contract — video JSON, storage, database</h3>
+<p><b>Claude Code:</b> define the video JSON schema with a validator, the storage interface (<code>save</code>, <code>get</code>, <code>delete</code>) over the local folder, the SQLite tables for projects, and a few sample JSON fixtures with tests. Include the fields that are costly to add later: background music with ducking, and a caption style.</p>
+<div class="manual"><b>Manual:</b> review the schema and confirm it holds everything the spec lists for a scene (script line, audio and duration, media and source, motion and focal point, captions), plus music and caption style.</div>
+<p><b>Done when:</b> sample JSON validates, bad JSON is rejected with a clear message, and files save and load by key.</p>
+</div>
+
+<div class="phase">
+<h3>Phase 2 (22%): Render proof</h3>
+<p><b>Claude Code:</b> build the Remotion scene composition (media, slow zoom or pan, captions, audio), per-scene segment render with the hash cache, FFmpeg normalize-at-ingest, and the FFmpeg join into one 9:16 MP4. Add draft and final modes. Use dummy assets only.</p>
+<div class="manual"><b>Manual:</b> drop in a few sample images, a short clip, and sample audio files. Time a full render on your machine and write the time down.</div>
+<p><b>Done when:</b> a dummy 10-scene video renders end to end, and editing one scene re-renders only that scene. Use the measured time to settle Remotion versus FFmpeg-only.</p>
+</div>
+
+<div class="phase">
+<h3>Phase 3 (32%): Voice and captions</h3>
+<p><b>Claude Code:</b> per-scene TTS, word timestamps from <code>faster-whisper</code> (or alignment against the known script text), and caption styling in the composition.</p>
+<div class="manual"><b>Manual:</b> let Whisper download its model on first run, listen to a few voiceover samples and pick the voice, and choose the caption style.</div>
+<p><b>Done when:</b> a real scenes JSON produces per-scene audio and word timings, and a render shows correctly timed captions.</p>
+</div>
+
+<div class="phase">
+<h3>Phase 4 (45%): Media</h3>
+<p><b>Claude Code:</b> Pexels and Pixabay search with vertical and resolution filtering, CLIP similarity ranking with up to 3 candidates, the image generation fallback with the style prefix, the upload path, and the no-reuse rule across the video.</p>
+<div class="manual"><b>Manual:</b> write the style prefix for generated images, and judge the candidates by eye to tune the “good enough” threshold that triggers generation.</div>
+<p><b>Done when:</b> a real scenes JSON gives candidates for every scene, saved in storage.</p>
+</div>
+
+<div class="phase">
+<h3>Phase 5 (55%): Thin end-to-end slice</h3>
+<p><b>Claude Code:</b> a plain script or CLI that chains phases 3, 4 and 2 with no graph and no UI. Add a dry-run mode with stub providers (fake TTS and images) so later phases can be built without spending API credits.</p>
+<div class="manual"><b>Manual:</b> run a real scenes JSON through it and look at the video.</div>
+<p><b>Done when:</b> scenes JSON in, finished MP4 out. This is the first usable output.</p>
+</div>
+
+<div class="phase">
+<h3>Phase 6 (68%): Backend API and LangGraph pipeline</h3>
+<p><b>Claude Code:</b> the core-loop endpoints, the LangGraph graph with the SQLite checkpointer, per-scene parallel nodes, the review interrupt, <code>approve</code> that resumes the graph, file serving, and status polling. Do a small spike first on interrupt combined with parallel fan-out and the SQLite checkpointer.</p>
+<div class="manual"><b>Manual:</b> run it with a real scenes JSON using only API calls (no UI yet) and check each step’s output.</div>
+<p><b>Done when:</b> run, pause at review, approve, and render all work through the API, and the graph survives a backend restart while paused.</p>
+</div>
+
+<div class="phase">
+<h3>Phase 7 (78%): Frontend shell</h3>
+<p><b>Claude Code:</b> projects list, input screen, progress screen with polling, export screen with download, and the Remotion Player previewing the video JSON.</p>
+<p><b>Done when:</b> you can paste scenes, watch progress, preview the result, and download the MP4 from the browser, with no editing yet.</p>
+</div>
+
+<div class="phase">
+<h3>Phase 8 (87%): Editor core</h3>
+<p><b>Claude Code:</b> the scene strip with status marks, the side panel for swapping media candidates and regenerating them, editing the script line with voice regenerate, caption text, debounced autosave, the matching editor-action endpoints, and Approve All.</p>
+<div class="manual"><b>Manual:</b> use the editor on a real project and note which fixes you reach for most. Those drive priorities.</div>
+<p><b>Done when:</b> you can fix the common problems without touching the JSON, and a single-scene edit re-renders only that scene.</p>
+</div>
+
+<div class="phase">
+<h3>Phase 9 (92%): Editor extras</h3>
+<p><b>Claude Code:</b> source switch (stock, generated, uploaded), focal-point picker, motion preset, media trim, scene reorder, and low-resolution proxies for smooth scrubbing.</p>
+<p><b>Done when:</b> every edit in the spec works and previews instantly.</p>
+</div>
+
+<div class="phase">
+<h3>Phase 10 (97%): Hardening</h3>
+<p><b>Claude Code:</b> the per-step retry endpoint, clear error messages, JSON validation before render, cleanup of unchosen candidates after approval, handling of a backend crash mid-run, and a short README with run steps.</p>
+<div class="manual"><b>Manual:</b> run 3 to 5 real videos end to end and log anything that breaks or feels slow.</div>
+<p><b>Done when:</b> those runs finish without manual fixes in the code.</p>
+</div>
+
+<div class="phase">
+<h3>Phase 11 (100%): First real Short</h3>
+<div class="manual"><b>Manual:</b> make one real Short from research to export, then upload it to YouTube yourself.</div>
+<p><b>Done when:</b> the video is live, and you have a short list of what to improve next, such as automating research or the transcript split.</p>
+</div>
+
+</div>
+</body>
+</html>

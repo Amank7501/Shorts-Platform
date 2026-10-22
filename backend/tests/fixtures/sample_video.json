@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "output": {"width": 1080, "height": 1920, "fps": 30},
+  "image_style_prefix": "flat vector illustration, warm palette, soft grain",
+  "caption_style": {"mode": "karaoke", "font_size": 72},
+  "music": {"key": "projects/1/audio/music.mp3", "volume": 0.12, "duck_under_voice": true},
+  "scenes": [
+    {
+      "id": "s1",
+      "script_line": "Honey never spoils.",
+      "visual_prompt": "a jar of honey on a wooden table",
+      "audio": {"key": "projects/1/audio/scene_01.mp3", "duration_s": 1.8},
+      "media": {
+        "source": "stock",
+        "kind": "video",
+        "key": "projects/1/clips/scene_01.mp4",
+        "attribution": "Pexels / example",
+        "trim_start_s": 0.5,
+        "trim_end_s": 3.0,
+        "candidates": [
+          {"key": "projects/1/clips/scene_01_b.mp4", "source": "stock", "kind": "video", "score": 0.31}
+        ]
+      },
+      "motion": {"preset": "none", "focal_point": {"x": 0.5, "y": 0.4}},
+      "captions": {
+        "text": "Honey never spoils.",
+        "words": [
+          {"text": "Honey", "start": 0.0, "end": 0.5},
+          {"text": "never", "start": 0.55, "end": 0.95},
+          {"text": "spoils.", "start": 1.0, "end": 1.75}
+        ]
+      }
+    },
+    {
+      "id": "s2",
+      "script_line": "Archaeologists found edible honey in ancient tombs.",
+      "visual_prompt": "an archaeologist opening an ancient tomb",
+      "audio": {"key": "projects/1/audio/scene_02.mp3", "duration_s": 3.6},
+      "pad_s": 0.4,
+      "media": {
+        "source": "generated",
+        "kind": "image",
+        "key": "projects/1/clips/scene_02.png"
+      },
+      "motion": {"preset": "pan_left", "focal_point": {"x": 0.6, "y": 0.35}},
+      "captions": {
+        "text": "Archaeologists found edible honey in ancient tombs.",
+        "words": [
+          {"text": "Archaeologists", "start": 0.0, "end": 0.9},
+          {"text": "found", "start": 0.95, "end": 1.2},
+          {"text": "edible", "start": 1.25, "end": 1.7},
+          {"text": "honey", "start": 1.75, "end": 2.1},
+          {"text": "in", "start": 2.15, "end": 2.25},
+          {"text": "ancient", "start": 2.3, "end": 2.8},
+          {"text": "tombs.", "start": 2.85, "end": 3.5}
+        ],
+        "style": {"mode": "plain", "font_size": 64}
+      }
+    },
+    {
+      "id": "s3",
+      "script_line": "Some of it was over three thousand years old.",
+      "visual_prompt": "ancient egyptian jars in a museum"
+    }
+  ]
+}
